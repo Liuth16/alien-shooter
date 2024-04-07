@@ -22,7 +22,7 @@ class AlienInvasion:
         self.bullets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
 
-        # self._create_fleet()
+        self._create_fleet()
         # Set the background color.
         self.bg_color = (self.settings.bg_color)
     def run_game(self):
@@ -31,7 +31,7 @@ class AlienInvasion:
             self._check_events()
             self.ship.update()
             self._update_bullets()
-            self._create_fleet()
+            self._update_aliens()
             self._update_screen()
             self.clock.tick(60)
 
@@ -77,6 +77,17 @@ class AlienInvasion:
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
+        
+        self._check_bullet_alien_collisions()
+
+    def _check_bullet_alien_collisions(self):
+        """Respond to bullet-alien collisions."""
+        # Remove any bullets and aliunes that have collided.
+        collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+
+        if not self.aliens:
+            self.bullets.empty()
+            self._create_fleet()
     
     def _create_fleet(self):
         """Create the fleet of aliens."""
@@ -94,12 +105,35 @@ class AlienInvasion:
             current_y += 2 * alien_height
 
     def _create_alien(self, x_position, y_position):
-        """Create an alien and place it in the row."""
+        """Create an alien and place it in the row."""  
         new_alien = Alien(self)
         new_alien.x = x_position
         new_alien.rect.x = x_position
         new_alien.rect.y = y_position
         self.aliens.add(new_alien)
+
+    def _check_fleet_edges(self):
+        """Respond appropriately if any aliens have reached an edge."""
+        for alien in self.aliens.sprites():
+            if alien.check_edges():
+                self._change_fleet_direction()
+                break
+    
+    def _change_fleet_direction(self):
+        """Drop the entire fleet and change the fleet's direction."""
+        for alien in self.aliens.sprites():
+            alien.rect.y += self.settings.fleet_drop_speed
+        self.settings.fleet_direction *= -1
+
+    def _update_aliens(self):
+        """Update the position of all aliens in the fleet."""
+        self._check_fleet_edges()
+        self.aliens.update()
+
+        # Look for alien-ship collisions.
+        if pygame.sprite.spritecollideany(self.ship, self.aliens):
+            print('Ship hit!!!')
+
 
     def _update_screen(self):
         """Update images on the screen, and flip to the new screen"""
